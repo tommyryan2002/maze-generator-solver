@@ -57,13 +57,19 @@ class Wall {
   }
 }
 
-var rows = 15;
+var rows = 50;
+var mult = 600 / rows;
 var cellArray = createCells(rows);
 var edgeList = createEdgeList(cellArray);
 var running = false;
 var complete = false;
 var changed = false;
 var started = false;
+var explored1 = [];
+var path1 = [];
+var explored2 = [];
+var path2 = [];
+var solving = false;
 
 function setup(){
 	createCanvas(400, 400);
@@ -77,6 +83,22 @@ function gameboard(x, y, scal, rot, rows, cellArray){
 		scale(scal);
 		rotate(rot);
 		square(-300, -300, 600);
+    noStroke();
+    for (i=0;i<path1.length;i++){
+      fill(255,255,0, 75);
+      square(-300 + path1[i].x * mult, -300 + path1[i].y * mult, mult);
+    }
+    for (i=0;i<path2.length;i++){
+      fill(255,255,0, 75);
+      square(-300 + path2[i].x * mult, -300 + path2[i].y * mult, mult);
+    }
+    fill(0,255,0);
+    square(-300, -300, mult);
+    fill(255, 0, 0);
+    square(299-mult, 299-mult, mult);
+    
+    stroke(0);
+    strokeWeight(2);
     for (i=0;i<cellArray.length;i++){
       for (j=0;j<cellArray.length;j++){
         textSize(32);
@@ -138,30 +160,47 @@ resetBtn.addEventListener("click", resetClicked);
 function resetClicked(){
   cellArray = createCells(rows);
   edgeList = createEdgeList(cellArray);
-  goBtn.innerHTML = "GO!";
+  goBtn.innerHTML = "RUN";
   started = false;
+  solving = false;
+  explored1 = [];
+  path1 = [];
+  explored2 = [];
+  path2 = [];
 }
 
 function rowsChanged(value){
   rows = value;
   resetClicked();
   document.getElementById("rowsLabel").innerHTML = "Rows/Columns: " + value;
+  mult = 600 / rows;
 }
 
-
+var solveBtn = document.getElementById('depthFirst');
+solveBtn.addEventListener("click", solveClicked);
+function solveClicked(){
+  if (complete){
+    solving = true;
+  }
+}
 function draw(){
   background(100);
   gameboard(200, 200, 0.5, 0, rows, cellArray);
   if (edgeList.length == 0){
     complete = true;
     goBtn.innerHTML = "DONE";
-    console.log("done!");
   }
   else if(started){
-    console.log('butt');
     edgeList = kruskalify(cellArray, edgeList);
+  }
+  if (solving){
+    console.log('solving');
+    path1 = depthFirst(cellArray[0][0], explored1, path1);
+    //path2 = aStar(cellArray[0][0], explored2, path2);
+    solving = false;
   } 
 }
+
 
 function createCells(rows) {
   let id = 0
@@ -291,3 +330,82 @@ function unifyIds(mazeCell, lastCell, id){
 function getRndInteger(min, max) {
   return Math.floor(Math.random() * (max - min) ) + min;
 }
+
+
+
+function depthFirst(currCell, explored, path){
+  explored.push(currCell);
+  path.push(currCell);
+  if(path.includes(cellArray[rows-1][rows-1])){
+    return path;
+  }
+  let queue = [];
+  for(var i = 0; i < 4; i++){
+    if (currCell.grabDirection(i) != null && currCell.grabDirection(i).border == false && 
+    !explored.includes(currCell.grabDirection(i).ref)){
+      queue.push(currCell.grabDirection(i).ref);
+    }
+  }
+  queue.push(path[path.length-1])
+  console.log("queue", queue)
+  if(queue.length <= 1){
+    path.pop();
+    return path;
+  }
+  for(let j = 0; j < queue.length; j += 1){
+    path = depthFirst(queue[j], explored, path);
+    if (path.includes(cellArray[rows-1][rows-1])){
+      break
+    }
+    else if(queue[j]==path[path.length-1]){
+      path.pop();
+      return path;
+    }
+  }
+  return path;
+}
+
+function aStar(currCell, explored, path){
+  console.log(currCell.x, currCell.y);
+  explored.push(currCell);
+  path.push(currCell);
+  if(path.includes(cellArray[rows-1][rows-1])){
+    return path;
+  }
+  let queue = [];
+  for(var i = 0; i < 4; i++){
+    if (currCell.grabDirection(i) != null && currCell.grabDirection(i).border == false && 
+    !explored.includes(currCell.grabDirection(i).ref)){
+      queue.push([currCell.grabDirection(i).ref, ((Math.abs(currCell.x - (rows-1))) + (Math.abs(currCell.y - (rows-1))))]);
+    }
+  }
+  queue.sort(function(a, b) { 
+    return a[1] > b[1] ? 1 : -1;
+  });
+  queue.push(path[path.length-1])
+  if(queue.length <= 1){
+    console.log("backtrack", currCell)
+    path.pop();
+    return path;
+  }
+  for(let j = 0; j < queue.length; j += 1){
+    path = aStar(queue[j], explored, path);
+    console.log("explored", explored, j);
+    if (path.includes(cellArray[rows-1][rows-1])){
+      break
+    }
+    else if(queue[j]==path[path.length-1]){
+      console.log("backtrack", currCell)
+      path.pop();
+      return path;
+    }
+  }
+  return path;
+}
+
+/*priority queue
+   h = ((Math.abs(currCell.x - (rows-1))) + (Math.abs(currCell.y - (rows-1))))]
+  queue.sort(function(a, b) { 
+    return a[1] > b[1] ? 1 : -1;
+  });
+*/

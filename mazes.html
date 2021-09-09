@@ -14,8 +14,10 @@
         <button id= "goButton" type="submit" name="button">RUN</button>
         <button id= "step" type="submit" name="step">STEP</button>
         <button id= "reset" type="submit" name="reset">RESET</button>
+        <button id= "depthFirst" type="submit" name="solve">SOLVE</button>
         <input type="range" id="rows" name="rows" min="3" max="30" oninput="rowsChanged(this.value)">
         <label for="rows" id="rowsLabel">Rows/Columns: 15</label>
+        
       </div>
       <main>
         <div>
@@ -23,5 +25,8 @@
           <script type="text/javascript" src="C:\Users\tommy\OneDrive\Desktop\JS Frontend\Mazes\mazes.js"></script>
         </div>
       </main>
+      <p>Yellow = Depth First</p>
+      <p>Blue = A*</p>
+      <p>Orange = Breadth First</p>
   </body>
 </html>
