@@ -1,4 +1,6 @@
-//New Mazes File
+//Thomas Ryan, Sept 2021
+
+//MazeCell class which has a reference for each cardinal direction, an ID, and x,y positions.
 class MazeCell {
   constructor(x, y, north, east, south, west, id) {
     this.x = x;
@@ -9,10 +11,12 @@ class MazeCell {
     this.west = west;
     this.id = id
   }
+  //grabs cardinal direction from an integer
   grabDirection(n){
     let dirAry = [this.north, this.east, this.south, this.west];
     return dirAry[n];
   }
+  //grabs random cardinal direction
   grabOpposite(n){
     let dirAry = [this.north, this.east, this.south, this.west];
     if(n == 1){
@@ -28,6 +32,7 @@ class MazeCell {
       return dirAry[1];
     }
   }
+  //grabs the integer number from the wall object
   grabWallIndex(wall){
     let dirAry = [this.north, this.east, this.south, this.west];
     for (i=0;i<4;i++){
@@ -38,17 +43,8 @@ class MazeCell {
     return -1
   }
 }
-function randomDirection(mazeCell){
-    //0 = North
-    //1 = East
-    //2 = South
-    //3 = West
-    let dirAry = [mazeCell.north, mazeCell.east, mazeCell.south, mazeCell.west]
-    let num = getRndInteger(0,4)
-    var edge = dirAry[num]
-    return [edge, num]
-  }
 
+//Wall class, contains a bool for the border, a ref to a neighboring cell, and a ref to its parent cell.
 class Wall {
   constructor(border, ref, cell) {
     this.border = border;
@@ -57,7 +53,8 @@ class Wall {
   }
 }
 
-var rows = 50;
+//Global Variables:
+var rows = 20;
 var mult = 600 / rows;
 var cellArray = createCells(rows);
 var edgeList = createEdgeList(cellArray);
@@ -66,7 +63,6 @@ var complete = false;
 var changed = false;
 var started = false;
 var explored1 = [];
-var path1 = [];
 var explored2 = [];
 var dpth = false;
 var ast = false;
@@ -78,6 +74,8 @@ let currCell = cellArray[0][0];
 let path2 = [currCell];
 let solved = false;
 let path3 = [currCell];
+var stack = [currCell];
+let path = [];
 let explored3 = [];
 
 
@@ -86,7 +84,7 @@ function setup(){
   frameRate(144);
 }
 
-
+//Draws the gameboard and the paths of the solutions as they are solved
 function gameboard(x, y, scal, rot, rows, cellArray){
 	push();
     strokeWeight(2);
@@ -108,9 +106,9 @@ function gameboard(x, y, scal, rot, rows, cellArray){
       fill(255,0,255);
       square(-300 + explored3[i].x * mult, -300 + explored3[i].y * mult, mult);
     }
-    for (i=0;i<path1.length;i++){
+    for (i=0;i<path.length;i++){
       fill(255,0,0);
-      square(-300 + path1[i].x * mult, -300 + path1[i].y * mult, mult);
+      square(-300 + path[i].x * mult, -300 + path[i].y * mult, mult);
     }
     for (i=0;i<path2.length;i++){
       fill(0,0,255);
@@ -130,7 +128,6 @@ function gameboard(x, y, scal, rot, rows, cellArray){
     for (i=0;i<cellArray.length;i++){
       for (j=0;j<cellArray.length;j++){
         textSize(32);
-        //text(cellArray[i][j].id, -300 + ((j+.5)*mult), -300 + ((i+.5)*mult))
         for (k=0;k<4;k++){
           if (cellArray[i][j].grabDirection(k) != null && cellArray[i][j].grabDirection(k).border){
             switch(k){
@@ -158,6 +155,9 @@ function gameboard(x, y, scal, rot, rows, cellArray){
 	pop();
 }
 
+
+
+//BUTTON FUNCTIONS: 
 var goBtn = document.getElementById('goButton');
 goBtn.addEventListener("click", goClicked);
 function goClicked(){
@@ -192,7 +192,7 @@ function resetClicked(){
   changed = false;
   started = false;
   explored1 = [];
-  path1 = [];
+  stack = [];
   explored2 = [];
   dpth = false;
   ast = false;
@@ -205,6 +205,7 @@ function resetClicked(){
   brdth = false;
   path3 = currCell;
   explored3 = [];
+  path = [];
 }
 
 function rowsChanged(value){
@@ -219,7 +220,7 @@ dpthBtn.addEventListener("click", dpthClicked);
 function dpthClicked(){
   if (solved){
     explored1 = [];
-    path1 = [];
+    stack = [];
     explored2 = [];
     currCell = cellArray[0][0]; 
     path2 = [currCell];
@@ -227,6 +228,7 @@ function dpthClicked(){
     queue2 = [];
     path3 = [];
     explored3 = [];
+    path = [];
   }
   if (complete){
     dpth = true;
@@ -238,7 +240,7 @@ astBtn.addEventListener("click", astClicked);
 function astClicked(){
   if(solved){
     explored1 = [];
-    path1 = [];
+    stack = [];
     explored2 = [];
     currCell = cellArray[0][0]; 
     path2 = [currCell];
@@ -246,6 +248,7 @@ function astClicked(){
     explored3 = [];
     path3 = [];
     queue2 = [];
+    path = [];
   }
   if (complete){
     ast = true;
@@ -257,7 +260,7 @@ brdthBtn.addEventListener("click", brdthClicked);
 function brdthClicked(){
   if(solved){
     explored1 = [];
-    path1 = [];
+    stack = [];
     explored2 = [];
     currCell = cellArray[0][0]; 
     path2 = [currCell];
@@ -265,6 +268,7 @@ function brdthClicked(){
     explored3 = [];
     queue2 = [];
     path3 = [];
+    path = [];
 
   }
   if (complete){
@@ -272,6 +276,9 @@ function brdthClicked(){
   }
 }
 
+
+
+//Main draw loop, runs at 144hz and loops each solution program when called upon.
 function draw(){
   background(100);
   gameboard(200, 200, 0.5, 0, rows, cellArray);
@@ -287,12 +294,19 @@ function draw(){
   }
   if (time == 1){
     if (dpth){
-      let ary1 = depthFirst(cellArray[0][0], explored1, path1);
-      path1 = ary1[0];
-      explored1 = ary1[1];
-      dpth = false;
-      solved = true;
+      if(currCell!=cellArray[rows-1][rows-1]){
+        let ary1 = depthFirst(currCell, explored1, stack);
+        stack = ary1[0];
+        explored1 = ary1[1];
+        currCell = stack[0];
+        path = findPath(currCell, cellArray)
       }
+      else{
+        dpth = false;
+        solved = true;
+        path = findPath(currCell, cellArray);
+      }
+    }
     if (ast){
       if (!queue.some(row => row.includes(cellArray[rows-1][rows-1]))){
         let ary2 = aStar(currCell, explored2, queue);
@@ -330,15 +344,16 @@ function draw(){
   time++
 }
   
-
-
+//MAZE INITIALIZATION FUNCTIONS:
+//Generates the initial 2-D Array maze structure
 function createCells(rows) {
   let id = 0
   let cellArray = [];
   for (i = 0; i < rows; i++) {
     let rowArray = [];
     for (j = 0; j < rows; j++) {
-      let newCell = new MazeCell(j, i, new Wall(true, null, null), new Wall(true, null, null), new Wall(true, null, null), new Wall(true, null, null), id);
+      let newCell = new MazeCell(j, i, new Wall(true, null, null), new Wall(true, null, null),
+      new Wall(true, null, null), new Wall(true, null, null), id);
       id++
       for(k = 0; k < 4; k++){
         newCell.grabDirection(k).cell = newCell
@@ -372,6 +387,7 @@ function updateCells(cellArray){
   return cellArray
 }
 
+//Creates an array of edges to be pulled from.
 function createEdgeList(cellArray){
   let edgeList = []
   for(i = 0; i < (cellArray.length); i++){
@@ -386,8 +402,10 @@ function createEdgeList(cellArray){
   return edgeList
 }
 
+//Primary maze generation function, connects maze cells by randomly pulling out edges
+//If an edge is between two cells w/ the same ID it will skip over it
+//loops in draw() until the edgelist is empty.
 function kruskalify(cellArray, edgeList){
-  //while (!checkCompletion(cellArray)){
     ind = getRndInteger(0, edgeList.length)
     let curr_edge = edgeList[ind];
     let index = curr_edge.cell.grabWallIndex(curr_edge);
@@ -423,13 +441,10 @@ function kruskalify(cellArray, edgeList){
       unifyIds(curr_edge.cell, null, curr_edge.cell.id);
       changed = true;
     }
-    else{
-      console.log("HUIHHHH");
-    }
-  //}
   return edgeList
 }
-//depth first, change all ids to that of the root id, should probably have used trees for this but decided to use graphs instead
+
+//Recurses through the nodes in the maze graph and unifies all ids of connected cells.
 function unifyIds(mazeCell, lastCell, id){
   for (let i=0;i<4;i++){
     if(mazeCell.grabDirection(i) != null && mazeCell.grabDirection(i).ref != null){
@@ -447,14 +462,89 @@ function unifyIds(mazeCell, lastCell, id){
   }
 }
 
-//not very efficient and time-expensive, O(n^2) at the most, could probably use trees or a hashmap or smth to speed this up.
 
-function getRndInteger(min, max) {
-  return Math.floor(Math.random() * (max - min) ) + min;
+
+//SOLUTION FUNCTIONS:
+//Iterative version of depthFirst search using a list as a stack.
+function depthFirst(currCell, explored, stack){
+  explored.push(currCell);
+  stack.shift()
+  //stack.unshift(stack[stack.length-1])
+  for(var i = 0; i < 4; i++){
+    if (currCell.grabDirection(i) != null && currCell.grabDirection(i).border == false && 
+    !explored.includes(currCell.grabDirection(i).ref)){
+      stack.unshift(currCell.grabDirection(i).ref);
+      currCell.grabDirection(i).ref.parent = currCell;
+    }
+  }
+  return [stack, explored];
+}
+
+//A* solution, uses Manhatten distance to goal for heuristics, and a sorted list as a priority queue.
+function aStar(currCell, explored, queue){
+    explored.push(currCell);
+    queue.shift();
+    let frontier = [];
+    for(var i = 0; i < 4; i++){
+      if (currCell.grabDirection(i) != null && currCell.grabDirection(i).border == false && 
+      !explored.includes(currCell.grabDirection(i).ref)){
+        frontier.push([currCell.grabDirection(i).ref, findPath(currCell, cellArray).length +
+          (Math.abs(currCell.x - (rows-1)) + Math.abs(currCell.y - (rows-1)))]);
+        currCell.grabDirection(i).ref.parent = currCell;
+      }
+    }
+    //sorts the queue by the lowest f value, probably should use heap sort for fastest time
+    //but speed isnt super important since it can only animate at 144hz
+    for (i=0;i<frontier.length;i++){
+      queue.push(frontier[i]);
+      queue.sort((a,b) => a[1] - b[1]);
+    }
+  return [findPath(currCell, cellArray), explored, queue];
+}
+
+//Breadth-first solution using a list queue, loops within draw()
+function breadthFirst(currCell, explored, queue){
+  explored.push(currCell);
+  queue.shift();
+  let frontier = [];
+  for(var i = 0; i < 4; i++){
+    if (currCell.grabDirection(i) != null && currCell.grabDirection(i).border == false && 
+    !explored.includes(currCell.grabDirection(i).ref)){
+      frontier.push([currCell.grabDirection(i).ref, findPath(currCell, cellArray).length]);
+      currCell.grabDirection(i).ref.parent = currCell;
+    }
+  }
+  //sorts the queue by the lowest distance from start value
+  for (i=0;i<frontier.length;i++){
+    queue.push(frontier[i]);
+    queue.sort((a,b) => a[1] - b[1]);
+  }
+
+  return [findPath(currCell, cellArray), explored, queue];
 }
 
 
 
+//SUPPORT FUNCTIONS
+function getRndInteger(min, max) {
+  return Math.floor(Math.random() * (max - min) ) + min;
+}
+
+function findPath(currCell, cellArray){
+  let path = [currCell];
+  if (currCell.parent == undefined){
+    return path;
+  }
+  while (currCell != cellArray[0][0]){
+    path.push(currCell);
+    currCell = currCell.parent;
+  }
+  return path;
+}
+
+
+//RECURSIVE IMPLEMENTATION, switched to iterative due to p5js animation limitations.
+/*
 function depthFirst(currCell, explored, path){
   explored.push(currCell);
   path.push(currCell);
@@ -485,91 +575,4 @@ function depthFirst(currCell, explored, path){
   }
   return [path, explored];
 }
-
-function findPath(currCell, cellArray){
-  let path = [currCell];
-  if (currCell.parent == undefined){
-    return path;
-  }
-  while (currCell != cellArray[0][0]){
-    path.push(currCell);
-    currCell = currCell.parent;
-  }
-  return path;
-}
-
-function aStar(currCell, explored, queue){
-    explored.push(currCell);
-    queue.shift();
-    let frontier = [];
-    for(var i = 0; i < 4; i++){
-      if (currCell.grabDirection(i) != null && currCell.grabDirection(i).border == false && 
-      !explored.includes(currCell.grabDirection(i).ref)){
-        frontier.push([currCell.grabDirection(i).ref, findPath(currCell, cellArray).length + (Math.abs(currCell.x - (rows-1)) + Math.abs(currCell.y - (rows-1)))]);
-        currCell.grabDirection(i).ref.parent = currCell;
-      }
-    }
-    //sorts the queue by the lowest f value, probably should use heap sort for fastest time, but speed isnt super important.
-    for (i=0;i<frontier.length;i++){
-      queue.push(frontier[i]);
-      queue.sort((a,b) => a[1] - b[1]);
-    }
-
-    //currCell = queue[0];
-  return [findPath(currCell, cellArray), explored, queue];
-}
-
-function breadthFirst(currCell, explored, queue){
-  explored.push(currCell);
-  queue.shift();
-  let frontier = [];
-  for(var i = 0; i < 4; i++){
-    if (currCell.grabDirection(i) != null && currCell.grabDirection(i).border == false && 
-    !explored.includes(currCell.grabDirection(i).ref)){
-      frontier.push([currCell.grabDirection(i).ref, findPath(currCell, cellArray).length]);
-      currCell.grabDirection(i).ref.parent = currCell;
-    }
-  }
-  //sorts the queue by the lowest distance from start value
-  for (i=0;i<frontier.length;i++){
-    queue.push(frontier[i]);
-    queue.sort((a,b) => a[1] - b[1]);
-  }
-
-  //currCell = queue[0];
-return [findPath(currCell, cellArray), explored, queue];
-}
-
-/*
-function aStar(currCell, explored){
-  explored = [];
-  while (currCell != cellArray[rows-1][rows-1]){
-    console.log(currCell.x, currCell.y);
-    explored.push(currCell);
-    queue.shift();
-    let frontier = [];
-    for(var i = 0; i < 4; i++){
-      if (currCell.grabDirection(i) != null && currCell.grabDirection(i).border == false && 
-      !explored.includes(currCell.grabDirection(i).ref)){
-        frontier.push([currCell.grabDirection(i).ref, findPath(currCell, cellArray).length + (Math.abs(currCell.x - (rows-1)) + Math.abs(currCell.y - (rows-1)))]);
-        currCell.grabDirection(i).ref.parent = currCell;
-      }
-    }
-    //sorts the queue by the lowest f value, probably should use heap sort for fastest time, but speed isnt super important.
-    for (i=0;i<frontier.length;i++){
-      queue.push(frontier[i][0]);
-      queue.sort((a,b) => a[1] - b[1]);
-    }
-    currCell = queue[0];
-  }
-  return [findPath(currCell, cellArray), explored];
-}
-*/
-
-
-/*priority queue
-   h = ((Math.abs(currCell.x - (rows-1))) + (Math.abs(currCell.y - (rows-1))))]
-  queue.sort(function(a, b) { 
-    return a[1] > b[1] ? 1 : -1;
-  });
 */
