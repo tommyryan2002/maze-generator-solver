@@ -53,228 +53,7 @@ class Wall {
   }
 }
 
-//Global Variables:
-var rows = 20;
-var mult = 600 / rows;
-var cellArray = createCells(rows);
-var edgeList = createEdgeList(cellArray);
-var running = false;
-var complete = false;
-var changed = false;
-var started = false;
-var explored1 = [];
-var explored2 = [];
-var dpth = false;
-var ast = false;
-let brdth = false
-let queue = [];
-let queue2 = [];
-var time = 0;
-let currCell = cellArray[0][0]; 
-let path2 = [currCell];
-let solved = false;
-let path3 = [currCell];
-var stack = [currCell];
-let path = [];
-let explored3 = [];
 
-
-function setup(){
-	createCanvas(400, 400);
-  frameRate(144);
-}
-
-//Draws the gameboard and the paths of the solutions as they are solved
-function gameboard(x, y, scal, rot, rows, cellArray){
-	push();
-    strokeWeight(2);
-    var mult = 600 / rows;
-		translate(x, y);
-		scale(scal);
-		rotate(rot);
-		square(-300, -300, 600);
-    noStroke();
-    for (i=0;i<explored2.length;i++){
-      fill(255 ,255 ,0);
-      square(-300 + explored2[i].x * mult, -300 + explored2[i].y * mult, mult);
-    }
-    for (i=0;i<explored1.length;i++){
-      fill(0,255,255);
-      square(-300 + explored1[i].x * mult, -300 + explored1[i].y * mult, mult);
-    }
-    for (i=0;i<explored3.length;i++){
-      fill(255,0,255);
-      square(-300 + explored3[i].x * mult, -300 + explored3[i].y * mult, mult);
-    }
-    for (i=0;i<path.length;i++){
-      fill(255,0,0);
-      square(-300 + path[i].x * mult, -300 + path[i].y * mult, mult);
-    }
-    for (i=0;i<path2.length;i++){
-      fill(0,0,255);
-      square(-300 + path2[i].x * mult, -300 + path2[i].y * mult, mult);
-    }
-    for (i=0;i<path3.length;i++){
-      fill(0,255,0);
-      square(-300 + path3[i].x * mult, -300 + path3[i].y * mult, mult);
-    }
-    fill(0,255,0);
-    square(-300, -300, mult);
-    fill(255, 0, 0);
-    square(299-mult, 299-mult, mult);
-    
-    stroke(0);
-    strokeWeight(2);
-    for (i=0;i<cellArray.length;i++){
-      for (j=0;j<cellArray.length;j++){
-        textSize(32);
-        for (k=0;k<4;k++){
-          if (cellArray[i][j].grabDirection(k) != null && cellArray[i][j].grabDirection(k).border){
-            switch(k){
-              case 0: {
-                line(-300 + (j*mult), -300 + (i*mult), (-300 + mult) + (j*mult), -300 + (i*mult));
-                break;
-              }
-              case 1:{
-                line((-300 + mult) + (j*mult), (-300 + mult) + (i*mult), (-300 + mult) + (j*mult), -300 + (i*mult));
-                break;
-              }
-              case 2:{
-                line(-300 + (j*mult), (-300 + mult) + (i*mult), (-300 + mult) + (j*mult), (-300 + mult) + (i*mult));
-                break;
-              }
-              case 3:{
-                line((-300) + (j*mult), (-300 + mult) + (i*mult), (-300) + (j*mult), -300 + (i*mult));
-                break;
-              }
-            }
-          }
-        }
-      }
-    }
-	pop();
-}
-
-
-
-//BUTTON FUNCTIONS: 
-var goBtn = document.getElementById('goButton');
-goBtn.addEventListener("click", goClicked);
-function goClicked(){
-  started = true;
-  if (edgeList.length == 0){
-    complete = true;
-    goBtn.innerHTML = "DONE"
-  }
-}
-
-var stepBtn = document.getElementById('step');
-stepBtn.addEventListener("click", stepClicked);
-function stepClicked(){
-  if (edgeList.length != 0){
-    while (!changed){
-      edgeList = kruskalify(cellArray, edgeList);
-    }
-    changed = false;
-  }
-  else{
-    complete = true;
-  }
-}
-
-var resetBtn = document.getElementById('reset');
-resetBtn.addEventListener("click", resetClicked);
-function resetClicked(){
-  cellArray = createCells(rows);
-  edgeList = createEdgeList(cellArray);
-  running = false;
-  complete = false;
-  changed = false;
-  started = false;
-  explored1 = [];
-  stack = [];
-  explored2 = [];
-  dpth = false;
-  ast = false;
-  queue = [];
-  time = 0;
-  currCell = cellArray[0][0]; 
-  path2 = [currCell];
-  goBtn.innerHTML = "RUN";
-  solved = false;
-  brdth = false;
-  path3 = currCell;
-  explored3 = [];
-  path = [];
-}
-
-function rowsChanged(value){
-  rows = value;
-  resetClicked();
-  document.getElementById("rowsLabel").innerHTML = "Rows/Columns: " + value;
-  mult = 600 / rows;
-}
-
-var dpthBtn = document.getElementById('depthFirst');
-dpthBtn.addEventListener("click", dpthClicked);
-function dpthClicked(){
-  if (solved){
-    explored1 = [];
-    stack = [];
-    explored2 = [];
-    currCell = cellArray[0][0]; 
-    path2 = [currCell];
-    queue = [];
-    queue2 = [];
-    path3 = [];
-    explored3 = [];
-    path = [];
-  }
-  if (complete){
-    dpth = true;
-  }
-}
-
-var astBtn = document.getElementById('aStar');
-astBtn.addEventListener("click", astClicked);
-function astClicked(){
-  if(solved){
-    explored1 = [];
-    stack = [];
-    explored2 = [];
-    currCell = cellArray[0][0]; 
-    path2 = [currCell];
-    queue = [];
-    explored3 = [];
-    path3 = [];
-    queue2 = [];
-    path = [];
-  }
-  if (complete){
-    ast = true;
-  }
-}
-
-var brdthBtn = document.getElementById('breadthFirst');
-brdthBtn.addEventListener("click", brdthClicked);
-function brdthClicked(){
-  if(solved){
-    explored1 = [];
-    stack = [];
-    explored2 = [];
-    currCell = cellArray[0][0]; 
-    path2 = [currCell];
-    queue = [];
-    explored3 = [];
-    queue2 = [];
-    path3 = [];
-    path = [];
-
-  }
-  if (complete){
-    brdth = true;
-  }
-}
 
 
 
@@ -541,6 +320,232 @@ function findPath(currCell, cellArray){
   }
   return path;
 }
+
+
+
+//Global Variables:
+var rows = 20;
+var mult = 600 / rows;
+var cellArray = createCells(rows);
+var edgeList = createEdgeList(cellArray);
+var running = false;
+var complete = false;
+var changed = false;
+var started = false;
+var explored1 = [];
+var explored2 = [];
+var dpth = false;
+var ast = false;
+let brdth = false
+let queue = [];
+let queue2 = [];
+var time = 0;
+let currCell = cellArray[0][0]; 
+let path2 = [currCell];
+let solved = false;
+let path3 = [currCell];
+var stack = [currCell];
+let path = [];
+let explored3 = [];
+
+
+function setup(){
+	createCanvas(400, 400);
+  frameRate(144);
+}
+
+//Draws the gameboard and the paths of the solutions as they are solved
+function gameboard(x, y, scal, rot, rows, cellArray){
+	push();
+    strokeWeight(2);
+    var mult = 600 / rows;
+		translate(x, y);
+		scale(scal);
+		rotate(rot);
+		square(-300, -300, 600);
+    noStroke();
+    for (i=0;i<explored2.length;i++){
+      fill(255 ,255 ,0);
+      square(-300 + explored2[i].x * mult, -300 + explored2[i].y * mult, mult);
+    }
+    for (i=0;i<explored1.length;i++){
+      fill(0,255,255);
+      square(-300 + explored1[i].x * mult, -300 + explored1[i].y * mult, mult);
+    }
+    for (i=0;i<explored3.length;i++){
+      fill(255,0,255);
+      square(-300 + explored3[i].x * mult, -300 + explored3[i].y * mult, mult);
+    }
+    for (i=0;i<path.length;i++){
+      fill(255,0,0);
+      square(-300 + path[i].x * mult, -300 + path[i].y * mult, mult);
+    }
+    for (i=0;i<path2.length;i++){
+      fill(0,0,255);
+      square(-300 + path2[i].x * mult, -300 + path2[i].y * mult, mult);
+    }
+    for (i=0;i<path3.length;i++){
+      fill(0,255,0);
+      square(-300 + path3[i].x * mult, -300 + path3[i].y * mult, mult);
+    }
+    fill(0,255,0);
+    square(-300, -300, mult);
+    fill(255, 0, 0);
+    square(299-mult, 299-mult, mult);
+    
+    stroke(0);
+    strokeWeight(2);
+    for (i=0;i<cellArray.length;i++){
+      for (j=0;j<cellArray.length;j++){
+        textSize(32);
+        for (k=0;k<4;k++){
+          if (cellArray[i][j].grabDirection(k) != null && cellArray[i][j].grabDirection(k).border){
+            switch(k){
+              case 0: {
+                line(-300 + (j*mult), -300 + (i*mult), (-300 + mult) + (j*mult), -300 + (i*mult));
+                break;
+              }
+              case 1:{
+                line((-300 + mult) + (j*mult), (-300 + mult) + (i*mult), (-300 + mult) + (j*mult), -300 + (i*mult));
+                break;
+              }
+              case 2:{
+                line(-300 + (j*mult), (-300 + mult) + (i*mult), (-300 + mult) + (j*mult), (-300 + mult) + (i*mult));
+                break;
+              }
+              case 3:{
+                line((-300) + (j*mult), (-300 + mult) + (i*mult), (-300) + (j*mult), -300 + (i*mult));
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+	pop();
+}
+
+
+
+//BUTTON FUNCTIONS: 
+var goBtn = document.getElementById('goButton');
+goBtn.addEventListener("click", goClicked);
+function goClicked(){
+  started = true;
+  if (edgeList.length == 0){
+    complete = true;
+    goBtn.innerHTML = "DONE"
+  }
+}
+
+var stepBtn = document.getElementById('step');
+stepBtn.addEventListener("click", stepClicked);
+function stepClicked(){
+  if (edgeList.length != 0){
+    while (!changed){
+      edgeList = kruskalify(cellArray, edgeList);
+    }
+    changed = false;
+  }
+  else{
+    complete = true;
+  }
+}
+
+var resetBtn = document.getElementById('reset');
+resetBtn.addEventListener("click", resetClicked);
+function resetClicked(){
+  cellArray = createCells(rows);
+  edgeList = createEdgeList(cellArray);
+  running = false;
+  complete = false;
+  changed = false;
+  started = false;
+  explored1 = [];
+  stack = [];
+  explored2 = [];
+  dpth = false;
+  ast = false;
+  queue = [];
+  time = 0;
+  currCell = cellArray[0][0]; 
+  path2 = [currCell];
+  goBtn.innerHTML = "RUN";
+  solved = false;
+  brdth = false;
+  path3 = currCell;
+  explored3 = [];
+  path = [];
+}
+
+function rowsChanged(value){
+  rows = value;
+  resetClicked();
+  document.getElementById("rowsLabel").innerHTML = "Rows/Columns: " + value;
+  mult = 600 / rows;
+}
+
+var dpthBtn = document.getElementById('depthFirst');
+dpthBtn.addEventListener("click", dpthClicked);
+function dpthClicked(){
+  if (solved){
+    explored1 = [];
+    stack = [];
+    explored2 = [];
+    currCell = cellArray[0][0]; 
+    path2 = [currCell];
+    queue = [];
+    queue2 = [];
+    path3 = [];
+    explored3 = [];
+    path = [];
+  }
+  if (complete){
+    dpth = true;
+  }
+}
+
+var astBtn = document.getElementById('aStar');
+astBtn.addEventListener("click", astClicked);
+function astClicked(){
+  if(solved){
+    explored1 = [];
+    stack = [];
+    explored2 = [];
+    currCell = cellArray[0][0]; 
+    path2 = [currCell];
+    queue = [];
+    explored3 = [];
+    path3 = [];
+    queue2 = [];
+    path = [];
+  }
+  if (complete){
+    ast = true;
+  }
+}
+
+var brdthBtn = document.getElementById('breadthFirst');
+brdthBtn.addEventListener("click", brdthClicked);
+function brdthClicked(){
+  if(solved){
+    explored1 = [];
+    stack = [];
+    explored2 = [];
+    currCell = cellArray[0][0]; 
+    path2 = [currCell];
+    queue = [];
+    explored3 = [];
+    queue2 = [];
+    path3 = [];
+    path = [];
+
+  }
+  if (complete){
+    brdth = true;
+  }
+}
+
 
 
 //RECURSIVE IMPLEMENTATION, switched to iterative due to p5js animation limitations.
